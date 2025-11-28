@@ -1,0 +1,9 @@
+ALTER TABLE perencanaan_snp ADD ref_snp_id INT AFTER id;
+
+CREATE TABLE `perencanaan_snp` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `snp` varchar(255) NOT NULL,
+  `tahap1` bigint(20) NOT NULL DEFAULT 0,
+  `tahap2` bigint(20) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
