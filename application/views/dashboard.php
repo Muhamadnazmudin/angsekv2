@@ -183,10 +183,56 @@
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
-
+                            
             </table>
 
         </div>
     </div>
 
+</div>
+    <!-- ===================== PERENCANAAN BERDASARKAN SNP ===================== -->
+<h4 class="mt-4 mb-3 text-dark">Perencanaan Berdasarkan Standar Nasional Pendidikan (SNP)</h4>
+
+<div class="card shadow mb-4">
+    <div class="card-body table-responsive">
+
+        <table class="table table-bordered table-striped mb-0">
+            <thead class="thead-light">
+                <tr class="text-center">
+                    <th width="50">No</th>
+                    <th>Standar Nasional Pendidikan</th>
+                    <th width="200">Tahap 1</th>
+                    <th width="200">Tahap 2</th>
+                    <th width="200">Total</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <?php 
+                $no = 1;
+                foreach ($perencanaan_snp as $s): 
+                    $total_snp = $s->tahap1 + $s->tahap2;
+                ?>
+                <tr>
+                    <td class="text-center"><?= $no++ ?></td>
+                    <td><?= $s->snp ?></td>
+                    <td class="text-right"><?= number_format($s->tahap1,0,',','.') ?></td>
+                    <td class="text-right"><?= number_format($s->tahap2,0,',','.') ?></td>
+                    <td class="text-right font-weight-bold"><?= number_format($total_snp,0,',','.') ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+
+            <tfoot>
+                <tr class="font-weight-bold" style="background:#f5f5f5;">
+                    <td colspan="4" class="text-right">TOTAL BESAR</td>
+                    <td class="text-right">
+                        <?= number_format($snp_grand_total, 0, ',', '.') ?>
+                    </td>
+                </tr>
+            </tfoot>
+
+        </table>
+
+    </div>
 </div>
