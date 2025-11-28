@@ -1,7 +1,4 @@
 <?php
-// application/views/anggaran/index.php
-// Pastikan controller Anggaran sudah mengirim:
-// $title, $anggaran, $jurusan, $kegiatan, $kodering
 ?>
 
 <?php if ($this->session->flashdata('success')): ?>
