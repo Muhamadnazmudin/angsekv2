@@ -1,5 +1,20 @@
 <?php
 ?>
+<style>
+.table-wrapper {
+    max-height: 500px;     /* tinggi area scroll */
+    overflow-y: auto;      /* scroll vertical */
+    overflow-x: auto;      /* scroll horizontal */
+}
+
+/* freeze header */
+.table-wrapper thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fc;   /* warna header biar menutupi row di bawahnya */
+    z-index: 10;
+}
+</style>
 
 <?php if ($this->session->flashdata('success')): ?>
 <div class="container-fluid">
@@ -49,9 +64,16 @@
     </div>
 
     <div class="card-body">
+        <div class="row mb-3">
+    <div class="col-md-4">
+        <input type="text" id="searchUraian" 
+               class="form-control" 
+               placeholder="Cari berdasarkan uraian...">
+    </div>
+</div>
 
       <!-- responsive horizontal scroll -->
-      <div class="table-responsive" style="overflow-x:auto;">
+      <div class="table-wrapper">
         <table class="table table-bordered table-striped" id="anggaranTable" style="min-width:1200px;">
           <thead>
             <tr>
@@ -395,6 +417,17 @@ document.getElementById('ref_snp_id').addEventListener('change', function () {
 
     document.getElementById('komponen_show').value =
         opt.getAttribute('data-komponen') || '';
+});
+</script>
+<script>
+document.getElementById('searchUraian').addEventListener('keyup', function () {
+    let keyword = this.value.toLowerCase();
+    let rows = document.querySelectorAll("#anggaranTable tbody tr");
+
+    rows.forEach(row => {
+        let uraianText = row.cells[5].innerText.toLowerCase(); // kolom Uraian (index ke-5)
+        row.style.display = uraianText.includes(keyword) ? "" : "none";
+    });
 });
 </script>
 
