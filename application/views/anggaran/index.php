@@ -49,6 +49,13 @@
            class="btn btn-info btn-sm mr-2">
           <i class="fas fa-download"></i> Download Template
         </a>
+        <!-- Tombol Hapus Semua Anggaran -->
+<a href="#" 
+   class="btn btn-danger btn-sm mr-2"
+   onclick="confirmDeleteAll()">
+   <i class="fas fa-trash"></i> Hapus Semua Anggaran
+</a>
+
 
         <!-- Tombol Import Anggaran -->
         <button class="btn btn-success btn-sm mr-2" data-toggle="modal" data-target="#importModal">
@@ -431,5 +438,12 @@ document.getElementById('searchUraian').addEventListener('keyup', function () {
 });
 </script>
 
+<script>
+function confirmDeleteAll() {
+    if (confirm("Apakah Anda yakin ingin menghapus SELURUH anggaran jurusan Anda?")) {
+        window.location.href = "<?= site_url('anggaran/delete_all_jurusan') ?>";
+    }
+}
+</script>
 
 

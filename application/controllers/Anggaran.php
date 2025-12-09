@@ -474,5 +474,23 @@ public function get_jenis_belanja($kategori_id)
         'jenis_belanja' => $row ? $row->nama : ""
     ]);
 }
+public function delete_all_jurusan()
+{
+    $jurusan_id = $this->session->userdata('jurusan_id');
+
+    if (!$jurusan_id) {
+        $this->session->set_flashdata('error', 'Jurusan tidak ditemukan.');
+        redirect('anggaran');
+        return;
+    }
+
+    // Hapus semua anggaran milik jurusan ini
+    $this->db->where('jurusan_id', $jurusan_id);
+    $this->db->delete('item_anggaran');
+
+    $this->session->set_flashdata('success', 'Semua anggaran jurusan Anda berhasil dihapus.');
+    redirect('anggaran');
+}
+
 
 }
