@@ -24,7 +24,7 @@
                     <a class="nav-link" data-toggle="tab" href="#tab2">2. Rincian</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#tab3">3. Alokasi</a>
+                    <a class="nav-link" data-toggle="tab" href="#tab3">3. Alokasi Bulan</a>
                 </li>
             </ul>
 
