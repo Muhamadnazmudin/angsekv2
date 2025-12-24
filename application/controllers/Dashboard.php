@@ -235,6 +235,121 @@ foreach ($data['perencanaan_snp'] as $p) {
     $sum_total += ($p->tahap1 + $p->tahap2);
 }
 $data['snp_grand_total'] = $sum_total;
+// ===========================================================
+// PAGU ANGGARAN & BELUM DIANGGARKAN
+// ===========================================================
+$pagu = $this->db
+    ->order_by('tahun', 'DESC')
+    ->limit(1)
+    ->get('pagu_anggaran')
+    ->row();
+
+$data['pagu_anggaran'] = $pagu ? (int)$pagu->nominal : 0;
+$data['belum_dianggarkan'] = $data['pagu_anggaran'] - $data['total_rencana'];
+$pagu_anggaran = $data['pagu_anggaran'];
+
+
+// ===========================================================
+// DATA DIAGRAM JENIS BELANJA (FINAL - JOIN kategori_kodering)
+// ===========================================================
+
+// BARANG → Bahan Habis Pakai (id = 1)
+$data['diagram']['barang'] = (int) $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('kodering k', 'k.id = ia.kodering_id')
+    ->join('kategori_kodering kk', 'kk.id = k.kategori_id')
+    ->where('kk.id', 1)
+    ->get()->row()->total;
+
+
+// JASA → Jasa (id = 3)
+$data['diagram']['jasa'] = (int) $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('kodering k', 'k.id = ia.kodering_id')
+    ->join('kategori_kodering kk', 'kk.id = k.kategori_id')
+    ->where('kk.id', 3)
+    ->get()->row()->total;
+
+
+// MODAL ALAT DAN MESIN (id = 2)
+$data['diagram']['modal_alat_mesin'] = (int) $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('kodering k', 'k.id = ia.kodering_id')
+    ->join('kategori_kodering kk', 'kk.id = k.kategori_id')
+    ->where('kk.id', 2)
+    ->get()->row()->total;
+
+
+// MODAL ASSET TETAP (id = 4)
+$data['diagram']['modal_aset_lainnya'] = (int) $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('kodering k', 'k.id = ia.kodering_id')
+    ->join('kategori_kodering kk', 'kk.id = k.kategori_id')
+    ->where('kk.id', 4)
+    ->get()->row()->total;
+
+
+// ===========================================================
+// PEMELIHARAAN → berdasarkan ref_snp.komponen
+// ===========================================================
+$data['diagram']['pemeliharaan'] = (int) $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('ref_snp rs', 'rs.id = ia.ref_snp_id')
+    ->like('rs.komponen', 'pemeliharaan')
+    ->get()
+    ->row()
+    ->total;
+
+
+
+// PERJALANAN DINAS → berdasarkan nama kodering
+$data['diagram']['perjalanan_dinas'] = (int) $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('kodering k', 'k.id = ia.kodering_id')
+    ->like('k.nama', 'Perjalanan')
+    ->get()->row()->total;
+
+
+// HONORARIUM → dipaksa 0 (sesuai kebijakan)
+$data['diagram']['honorarium'] = 0;
+
+// ===========================================================
+// PROPORSI PENYEDIAAN BUKU (SIMPLE)
+// ===========================================================
+
+// TOTAL BUKU (gabungan kodering buku + kegiatan pengadaan buku)
+$total_buku = $this->db
+    ->select_sum('ia.total')
+    ->from('item_anggaran ia')
+    ->join('kodering k', 'k.id = ia.kodering_id')
+    ->join('kegiatan kg', 'kg.id = ia.kegiatan_id', 'left')
+    ->group_start()
+        ->like('k.nama', 'Belanja Modal Buku')
+        ->or_like('kg.nama', 'Pengadaan Buku')
+    ->group_end()
+    ->get()->row()->total;
+
+$total_buku = (int) $total_buku;
+
+// KOMPONEN LAINNYA
+$komponen_lainnya = max(0, $data['total_rencana'] - $total_buku);
+
+$data['diagram_buku_simple'] = [
+    'buku' => $total_buku,
+    'lainnya' => $komponen_lainnya
+];
+
+$data['total_buku'] = $total_buku;
+$data['persen_buku'] = ($data['total_rencana'] > 0)
+    ? round(($total_buku / $data['total_rencana']) * 100, 2)
+    : 0;
+
 
 
         // ===========================================================

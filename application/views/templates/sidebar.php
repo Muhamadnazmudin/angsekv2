@@ -65,7 +65,7 @@ body {
                 <span>Input Anggaran</span>
             </a>
         </li>
-
+     
         <hr class="sidebar-divider">
 
         <!-- LAPORAN -->
@@ -194,6 +194,12 @@ body {
     <a class="nav-link" href="<?= site_url('anggaran') ?>">
         <i class="fas fa-file-invoice-dollar"></i>
         <span>Input Anggaran</span>
+    </a>
+</li>
+   <li class="nav-item">
+    <a class="nav-link" href="<?= site_url('pagu') ?>">
+        <i class="fas fa-wallet"></i>
+        <span>Pagu Anggaran</span>
     </a>
 </li>
 
