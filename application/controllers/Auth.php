@@ -16,27 +16,35 @@ class Auth extends CI_Controller {
         $this->load->view('auth/login');
     }
 
-    public function login() {
+    public function login()
+{
+    // CEK: harus lewat POST
+    if (!$this->input->post()) {
+        redirect('auth');
+    }
 
-    $username = $this->input->post('username');
-    $password = $this->input->post('password');
+    $username = trim($this->input->post('username', TRUE));
+    $password = trim($this->input->post('password', TRUE));
+
+    if (empty($username) || empty($password)) {
+        $this->session->set_flashdata('error', 'Username dan password wajib diisi!');
+        redirect('auth');
+    }
 
     $user = $this->User_model->get_by_username($username);
 
     if ($user && password_verify($password, $user->password)) {
 
-        // simpan role + jurusan_id ke session
         $session = [
             'user_id'    => $user->id,
             'fullname'   => $user->fullname,
             'username'   => $user->username,
             'role_id'    => $user->role_id,
-            'jurusan_id' => $user->jurusan_id, // << WAJIB UNTUK AKSES FILTER
+            'jurusan_id' => $user->jurusan_id,
             'logged_in'  => TRUE
         ];
 
         $this->session->set_userdata($session);
-
         redirect('dashboard');
     }
 

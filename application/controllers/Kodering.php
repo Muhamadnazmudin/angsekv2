@@ -104,48 +104,46 @@ class Kodering extends MY_Controller {
 {
     if (!empty($_FILES['file_excel']['name'])) {
 
-        $this->load->library('excel_lib');
+        $this->load->library('Spreadsheet_Lib');
         $file = $_FILES['file_excel']['tmp_name'];
 
-        $objPHPExcel = PHPExcel_IOFactory::load($file);
-        $sheet = $objPHPExcel->getActiveSheet()->toArray(null, true, true, true);
+        // LOAD DENGAN PHPSPREADSHEET
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file);
+        $spreadsheet = $reader->load($file);
+        $sheet = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
 
-        $numRow = 1;
+        $numRow   = 1;
         $inserted = 0;
-        $skipped = 0;
+        $skipped  = 0;
 
         foreach ($sheet as $row) {
 
-            if ($numRow == 1) { 
+            if ($numRow == 1) {
                 $numRow++;
                 continue; // skip header
             }
 
-            $kode   = trim($row['A']);
-            $nama   = trim($row['B']);
+            $kode        = trim($row['A']);
+            $nama        = trim($row['B']);
             $kategori_id = trim($row['C']);
 
-            // Skip baris kosong
             if ($kode == "" || $nama == "") {
                 $skipped++;
                 continue;
             }
 
-            // Validasi kategori ID ada di DB
             $cek_kat = $this->db->get_where('kategori_kodering', ['id' => $kategori_id])->row();
             if (!$cek_kat) {
                 $skipped++;
                 continue;
             }
 
-            // CEK DUPLIKAT BERDASARKAN KODE
             $cek_duplikat = $this->db->get_where('kodering', ['kode' => $kode])->row();
             if ($cek_duplikat) {
-                $skipped++; // jangan insert
+                $skipped++;
                 continue;
             }
 
-            // Insert data
             $this->Kodering_model->insert([
                 'kode'        => $kode,
                 'nama'        => $nama,
@@ -156,13 +154,12 @@ class Kodering extends MY_Controller {
             $inserted++;
         }
 
-        $this->session->set_flashdata('success', 
+        $this->session->set_flashdata('success',
             "Import selesai: <br>
              • $inserted data berhasil masuk <br>
              • $skipped data dilewati (duplikat / invalid)"
         );
-    } 
-    else {
+    } else {
         $this->session->set_flashdata('error', 'File Excel belum dipilih!');
     }
 
@@ -171,106 +168,45 @@ class Kodering extends MY_Controller {
 
 public function download_template()
 {
-    // Load library PHPExcel
-    $this->load->library('excel_lib');
+    // Pastikan tidak ada output sama sekali
+    ini_set('display_errors', 0);
+    error_reporting(0);
 
-    // Buat objek excel baru
-    $excel = new PHPExcel();
-    $sheet = $excel->setActiveSheetIndex(0);
+    $this->load->library('Spreadsheet_Lib');
+
+    // ===============================
+    // BUAT EXCEL
+    // ===============================
+    $excel = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $excel->getActiveSheet();
     $sheet->setTitle('Template Kodering');
 
-    // Header kolom
     $sheet->setCellValue('A1', 'Kode');
     $sheet->setCellValue('B1', 'Nama Kodering');
-    $sheet->setCellValue('C1', 'Kategori ID (lihat sheet Kategori)');
+    $sheet->setCellValue('C1', 'Kategori ID');
 
-    // Style header
-    $style_header = [
-        'font' => ['bold' => true],
-        'alignment' => [
-            'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER
-        ],
-        'borders' => [
-            'allborders' => [
-                'style' => PHPExcel_Style_Border::BORDER_THIN
-            ]
-        ],
-        'fill' => [
-            'type'  => PHPExcel_Style_Fill::FILL_SOLID,
-            'color' => ['rgb' => 'D9E1F2']
-        ]
-    ];
-    $sheet->getStyle('A1:C1')->applyFromArray($style_header);
-    $sheet->getColumnDimension('A')->setAutoSize(true);
-    $sheet->getColumnDimension('B')->setAutoSize(true);
-    $sheet->getColumnDimension('C')->setAutoSize(true);
-
-    // Tambahkan contoh data
-    $sheet->setCellValue('A2', '5.1.02.01.01.0055');
-    $sheet->setCellValue('B2', 'Belanja Makanan dan Minuman');
-    $sheet->setCellValue('C2', '1');
-
-    $sheet->setCellValue('A3', '5.2.05.01.01.0001');
-    $sheet->setCellValue('B3', 'Belanja Modal Buku Umum');
-    $sheet->setCellValue('C3', '2');
-
-    $sheet->setCellValue('A4', '5.1.02.02.03.0012');
-    $sheet->setCellValue('B4', 'Belanja Jasa Kebersihan');
-    $sheet->setCellValue('C4', '3');
-
-    // ========================================================
-    // Sheet Referensi Kategori
-    // ========================================================
-    $refSheet = $excel->createSheet();
-    $refSheet->setTitle('Kategori');
-
-    $refSheet->setCellValue('A1', 'ID');
-    $refSheet->setCellValue('B1', 'Nama Kategori');
-
-    $kategori = $this->db->get('kategori_kodering')->result();
-
-    $rowNum = 2;
-    foreach ($kategori as $kat) {
-        $refSheet->setCellValue('A'.$rowNum, $kat->id);
-        $refSheet->setCellValue('B'.$rowNum, $kat->nama);
-        $rowNum++;
-    }
-
-    // Style referensi header
-    $refStyle = [
-        'font' => ['bold' => true],
-        'alignment' => [
-            'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER
-        ],
-        'borders' => [
-            'allborders' => [
-                'style' => PHPExcel_Style_Border::BORDER_THIN
-            ]
-        ],
-        'fill' => [
-            'type'  => PHPExcel_Style_Fill::FILL_SOLID,
-            'color' => ['rgb' => 'E2EFDA']
-        ]
-    ];
-    $refSheet->getStyle('A1:B1')->applyFromArray($refStyle);
-    $refSheet->getColumnDimension('A')->setAutoSize(true);
-    $refSheet->getColumnDimension('B')->setAutoSize(true);
-
-    // ========================================================
-    // BERSIHKAN OUTPUT BUFFER SEBELUM DOWNLOAD
-    // ========================================================
-    if (ob_get_length()) {
+    // ===============================
+    // BERSIHKAN SEMUA OUTPUT BUFFER
+    // ===============================
+    while (ob_get_level() > 0) {
         ob_end_clean();
     }
 
-    // Header download file
+    // ===============================
+    // HEADER DOWNLOAD (WAJIB URUT)
+    // ===============================
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="Template_Kodering.xlsx"');
+    header('Content-Disposition: attachment; filename="Template_Kodering.xlsx"');
     header('Cache-Control: max-age=0');
+    header('Pragma: public');
+    header('Expires: 0');
 
-    // Export
-    $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+    // ===============================
+    // OUTPUT FILE
+    // ===============================
+    $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($excel, 'Xlsx');
     $writer->save('php://output');
+
     exit;
 }
 

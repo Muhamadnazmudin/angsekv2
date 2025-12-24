@@ -1,5 +1,8 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 
 class Ref_snp extends CI_Controller {
 
@@ -104,13 +107,14 @@ class Ref_snp extends CI_Controller {
     }
     public function export_excel()
 {
-    include APPPATH . 'third_party/PHPExcel/Classes/PHPExcel.php';
+    ini_set('display_errors', 0);
+    error_reporting(0);
 
-    $excel = new PHPExcel();
-    $excel->setActiveSheetIndex(0);
-    $sheet = $excel->getActiveSheet();
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Referensi SNP');
 
-    // Header kolom
+    // Header
     $sheet->setCellValue('A1', 'Kode');
     $sheet->setCellValue('B1', 'SNP');
     $sheet->setCellValue('C1', 'Komponen');
@@ -121,31 +125,37 @@ class Ref_snp extends CI_Controller {
     $row = 2;
 
     foreach ($data as $d) {
-        $sheet->setCellValue('A'.$row, $d->kode);
+        $sheet->setCellValueExplicit('A'.$row, $d->kode, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
         $sheet->setCellValue('B'.$row, $d->snp);
         $sheet->setCellValue('C'.$row, $d->komponen);
         $sheet->setCellValue('D'.$row, $d->uraian_kegiatan);
         $row++;
     }
 
-    // Style otomatis
-    foreach(range('A','D') as $col){
+    foreach (range('A','D') as $col) {
         $sheet->getColumnDimension($col)->setAutoSize(true);
+    }
+
+    // Bersihkan output buffer
+    while (ob_get_level() > 0) {
+        ob_end_clean();
     }
 
     $filename = "Referensi_SNP_" . date('YmdHis') . ".xlsx";
 
-    header('Content-Type: application/vnd.ms-excel');
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment; filename="'.$filename.'"');
     header('Cache-Control: max-age=0');
+    header('Pragma: public');
+    header('Expires: 0');
 
-    $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+    $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
     $writer->save('php://output');
+    exit;
 }
+
 public function import_excel()
 {
-    include APPPATH . 'third_party/PHPExcel/Classes/PHPExcel.php';
-
     if (empty($_FILES['file_excel']['tmp_name'])) {
         $this->session->set_flashdata('error', 'File Excel tidak ditemukan.');
         redirect('ref_snp');
@@ -153,46 +163,34 @@ public function import_excel()
 
     $file = $_FILES['file_excel']['tmp_name'];
 
-    // Load file excel
     try {
-        $excel = PHPExcel_IOFactory::load($file);
-    } catch (Exception $e) {
-        $this->session->set_flashdata('error', 'Gagal membaca file Excel: ' . $e->getMessage());
+        $spreadsheet = IOFactory::load($file);
+    } catch (\Throwable $e) {
+        $this->session->set_flashdata('error', 'Gagal membaca file Excel.');
         redirect('ref_snp');
     }
 
-    $sheet = $excel->getActiveSheet();
+    $sheet = $spreadsheet->getActiveSheet();
     $highestRow = $sheet->getHighestRow();
 
     $data_insert = [];
     $kode_in_file = [];
     $skip_in_file = [];
 
-    // Loop mulai baris 2 (baris 1 asumsikan header)
     for ($row = 2; $row <= $highestRow; $row++) {
 
-        // Ambil RAW VALUE dari cell (paling aman)
-        $cellA = $sheet->getCell('A' . $row)->getValue();
-        $cellB = $sheet->getCell('B' . $row)->getValue();
-        $cellC = $sheet->getCell('C' . $row)->getValue();
-        $cellD = $sheet->getCell('D' . $row)->getValue();
+        $kode     = trim((string) $sheet->getCell('A'.$row)->getValue());
+        $snp      = trim((string) $sheet->getCell('B'.$row)->getValue());
+        $komponen = trim((string) $sheet->getCell('C'.$row)->getValue());
+        $uraian   = trim((string) $sheet->getCell('D'.$row)->getValue());
 
-        // Paksa semua ke STRING agar tidak diformat Excel
-        $kode     = trim((string) $cellA);
-        $snp      = trim((string) $cellB);
-        $komponen = trim((string) $cellC);
-        $uraian   = trim((string) $cellD);
+        if ($kode === '') continue;
 
-        // Skip jika kosong
-        if ($kode == '') continue;
-
-        // Jika Excel tetap merubah ke angka (backup safety repair)
-        if (is_numeric($kode) && strpos($kode, '.') !== false) {
-            // Konversi kembali ke format desimal as-is (string)
-            $kode = rtrim(rtrim(number_format($kode, 10, '.', ''), '0'), '.');
+        // Cegah Excel ubah ke numeric
+        if (is_numeric($kode)) {
+            $kode = (string) $kode;
         }
 
-        // Cek duplikat dalam file import
         if (in_array($kode, $kode_in_file)) {
             $skip_in_file[] = $kode;
             continue;
@@ -200,7 +198,6 @@ public function import_excel()
 
         $kode_in_file[] = $kode;
 
-        // Simpan sementara
         $data_insert[] = [
             'kode' => $kode,
             'snp' => $snp,
@@ -209,7 +206,7 @@ public function import_excel()
         ];
     }
 
-    // Cek duplikat pada database berdasarkan kode dalam file
+    // Cek duplikat DB
     $existing = $this->Ref_snp_model->get_existing_codes($kode_in_file);
 
     $valid_data = [];
@@ -223,31 +220,29 @@ public function import_excel()
         }
     }
 
-    // Insert data valid
     if (!empty($valid_data)) {
         $this->Ref_snp_model->insert_batch($valid_data);
     }
 
-    // Buat pesan hasil
+    // Pesan hasil
     $msg = "";
 
-    if (!empty($valid_data)) {
-        $msg .= count($valid_data) . " data berhasil diimport.<br>";
-    } else {
-        $msg .= "Tidak ada data baru yang diimport.<br>";
-    }
+    $msg .= !empty($valid_data)
+        ? count($valid_data)." data berhasil diimport.<br>"
+        : "Tidak ada data baru yang diimport.<br>";
 
     if (!empty($skip_in_file)) {
-        $msg .= "Lewati duplikat di file: " . implode(', ', array_unique($skip_in_file)) . "<br>";
+        $msg .= "Lewati duplikat di file: ".implode(', ', array_unique($skip_in_file))."<br>";
     }
 
     if (!empty($skip_existing)) {
-        $msg .= "Lewati yang sudah ada di database: " . implode(', ', array_unique($skip_existing));
+        $msg .= "Lewati yang sudah ada di database: ".implode(', ', array_unique($skip_existing));
     }
 
     $this->session->set_flashdata('success', $msg);
     redirect('ref_snp');
 }
+
 
 
 }

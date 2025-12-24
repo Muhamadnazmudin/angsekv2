@@ -1,5 +1,10 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\NamedRange;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+
 
 class Anggaran extends MY_Controller {
 
@@ -204,7 +209,7 @@ if ($this->session->userdata('role_id') == 3) {
 
 public function import()
 {
-    $this->load->library('excel_lib');
+    $this->load->library('Spreadsheet_Lib');
 
     if (empty($_FILES['file_excel']['name'])) {
         $this->session->set_flashdata('error', 'File belum dipilih.');
@@ -213,8 +218,8 @@ public function import()
     }
 
     $file = $_FILES['file_excel']['tmp_name'];
-    $obj = PHPExcel_IOFactory::load($file);
-    $sheet = $obj->getActiveSheet();
+    $spreadsheet = IOFactory::load($file);
+    $sheet = $spreadsheet->getActiveSheet();
     $highest = $sheet->getHighestRow();
 
     $insert = [];
@@ -311,14 +316,18 @@ public function import()
 public function download_template()
 {
     // pastikan tidak ada output sebelumnya
-    if (ob_get_length()) ob_end_clean();
+    while (ob_get_level() > 0) {
+    ob_end_clean();
+}
+
 
     // load library
-    $this->load->library('excel_lib');
-    $excel = new PHPExcel();
+    $this->load->library('Spreadsheet_Lib');
+$excel = new Spreadsheet();
+
 
     // ================= SHEET 1: DataAnggaran =================
-    $sheet = $excel->setActiveSheetIndex(0);
+    $sheet = $excel->getActiveSheet();
     $sheet->setTitle('DataAnggaran');
 
     // Header (dengan SNP & Komponen)
@@ -345,7 +354,7 @@ public function download_template()
     $sheet->freezePane('A2');
 
     // ================= SHEET 2: Lists =================
-    $lists = $excel->createSheet(1);
+    $lists = $excel->createSheet();
     $lists->setTitle('Lists');
 
     // Jurusan (A)
@@ -387,61 +396,87 @@ public function download_template()
 
     // Named ranges (safe)
     if ($jurusan_last >= 2) {
-        $excel->addNamedRange(new PHPExcel_NamedRange('LIST_JURUSAN', $lists, '$A$2:$A$'.$jurusan_last));
+        $excel->addNamedRange(new NamedRange('LIST_JURUSAN', $lists, '$A$2:$A$'.$jurusan_last));
     }
     if ($ref_last >= 2) {
-        $excel->addNamedRange(new PHPExcel_NamedRange('LIST_REFSNP', $lists, '$B$2:$B$'.$ref_last));
+        $excel->addNamedRange(new NamedRange('LIST_REFSNP', $lists, '$B$2:$B$'.$ref_last));
     }
     if ($kodering_last >= 2) {
-        $excel->addNamedRange(new PHPExcel_NamedRange('LIST_KODERING', $lists, '$E$2:$E$'.$kodering_last));
+        $excel->addNamedRange(new NamedRange('LIST_KODERING', $lists, '$E$2:$E$'.$kodering_last));
     }
 
     // ================= DROPDOWN & FORMULAS =================
     // gunakan jumlah baris moderat agar ringan
     $maxRow = 300;
-    for ($i = 2; $i <= $maxRow; $i++) {
+    // ================= DROPDOWN & FORMULAS =================
+for ($i = 2; $i <= $maxRow; $i++) {
 
-        // Jurusan (A)
-        $dv = $sheet->getCell("A$i")->getDataValidation();
-        $dv->setType(PHPExcel_Cell_DataValidation::TYPE_LIST)
-           ->setErrorStyle(PHPExcel_Cell_DataValidation::STYLE_INFORMATION)
-           ->setAllowBlank(true)
-           ->setShowInputMessage(true)
-           ->setShowErrorMessage(true)
-           ->setShowDropDown(true)
-           ->setFormula1('=LIST_JURUSAN');
+    // =========================
+    // Jurusan (A)
+    // =========================
+    $dv = new DataValidation();
+    $dv->setType(DataValidation::TYPE_LIST);
+    $dv->setErrorStyle(DataValidation::STYLE_INFORMATION);
+    $dv->setAllowBlank(true);
+    $dv->setShowInputMessage(true);
+    $dv->setShowErrorMessage(true);
+    $dv->setShowDropDown(true);
+    $dv->setFormula1('=LIST_JURUSAN');
+    $sheet->getCell("A$i")->setDataValidation($dv);
 
-        // Kegiatan (D) dari ref_snp
-        $dv = $sheet->getCell("D$i")->getDataValidation();
-        $dv->setType(PHPExcel_Cell_DataValidation::TYPE_LIST)
-           ->setErrorStyle(PHPExcel_Cell_DataValidation::STYLE_INFORMATION)
-           ->setAllowBlank(true)
-           ->setShowInputMessage(true)
-           ->setShowErrorMessage(true)
-           ->setShowDropDown(true)
-           ->setFormula1('=LIST_REFSNP');
+    // =========================
+    // Kegiatan (D) dari ref_snp
+    // =========================
+    $dv = new DataValidation();
+    $dv->setType(DataValidation::TYPE_LIST);
+    $dv->setErrorStyle(DataValidation::STYLE_INFORMATION);
+    $dv->setAllowBlank(true);
+    $dv->setShowInputMessage(true);
+    $dv->setShowErrorMessage(true);
+    $dv->setShowDropDown(true);
+    $dv->setFormula1('=LIST_REFSNP');
+    $sheet->getCell("D$i")->setDataValidation($dv);
 
-        // Kodering (E)
-        $dv = $sheet->getCell("E$i")->getDataValidation();
-        $dv->setType(PHPExcel_Cell_DataValidation::TYPE_LIST)
-           ->setErrorStyle(PHPExcel_Cell_DataValidation::STYLE_INFORMATION)
-           ->setAllowBlank(true)
-           ->setShowInputMessage(true)
-           ->setShowErrorMessage(true)
-           ->setShowDropDown(true)
-           ->setFormula1('=LIST_KODERING');
+    // =========================
+    // Kodering (E)
+    // =========================
+    $dv = new DataValidation();
+    $dv->setType(DataValidation::TYPE_LIST);
+    $dv->setErrorStyle(DataValidation::STYLE_INFORMATION);
+    $dv->setAllowBlank(true);
+    $dv->setShowInputMessage(true);
+    $dv->setShowErrorMessage(true);
+    $dv->setShowDropDown(true);
+    $dv->setFormula1('=LIST_KODERING');
+    $sheet->getCell("E$i")->setDataValidation($dv);
 
-        // SNP otomatis (B) dan Komponen otomatis (C) berdasarkan Kegiatan (D)
-        // VLOOKUP range Lists!$B$2:$D$ref_last, kolom 2 = SNP, 3 = Komponen
-        $sheet->setCellValue("B$i", "=IFERROR(VLOOKUP(D$i, Lists!\$B\$2:\$D\$$ref_last, 2, FALSE),\"\")");
-        $sheet->setCellValue("C$i", "=IFERROR(VLOOKUP(D$i, Lists!\$B\$2:\$D\$$ref_last, 3, FALSE),\"\")");
+    // =========================
+    // SNP (B) & Komponen (C) otomatis dari Kegiatan (D)
+    // =========================
+    $sheet->setCellValue(
+        "B$i",
+        "=IFERROR(VLOOKUP(D$i, Lists!\$B\$2:\$D\$$ref_last, 2, FALSE),\"\")"
+    );
 
-        // Jenis Belanja otomatis (F) dari Kodering (Lists!E:F)
-        $sheet->setCellValue("F$i", "=IFERROR(VLOOKUP(E$i, Lists!\$E\$2:\$F\$$kodering_last, 2, FALSE),\"\")");
+    $sheet->setCellValue(
+        "C$i",
+        "=IFERROR(VLOOKUP(D$i, Lists!\$B\$2:\$D\$$ref_last, 3, FALSE),\"\")"
+    );
 
-        // Total otomatis (K) = H * J
-        $sheet->setCellValue("K$i", "=IFERROR(H$i * J$i, 0)");
-    }
+    // =========================
+    // Jenis Belanja (F) dari Kodering
+    // =========================
+    $sheet->setCellValue(
+        "F$i",
+        "=IFERROR(VLOOKUP(E$i, Lists!\$E\$2:\$F\$$kodering_last, 2, FALSE),\"\")"
+    );
+
+    // =========================
+    // Total otomatis (K) = H * J
+    // =========================
+    $sheet->setCellValue("K$i", "=IFERROR(H$i * J$i, 0)");
+}
+
 
     // ================= OUTPUT (headers aman & flush) =================
     // kirim header melalui PHP (bukan CI output) untuk binary stream
@@ -452,7 +487,8 @@ public function download_template()
     if (function_exists('apache_setenv')) @apache_setenv('no-gzip', '1');
     @ini_set('zlib.output_compression', 'Off');
 
-    $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+    $writer = IOFactory::createWriter($excel, 'Xlsx');
+
 
     // save to output
     $writer->save('php://output');
