@@ -100,20 +100,22 @@ class Laporan_rkas extends CI_Controller {
 
     // HEADER (TIDAK DIUBAH)
     $headers = [
-        'A'=>'Jurusan',
-        'B'=>'SNP',
-        'C'=>'Komponen',
-        'D'=>'Kegiatan',
-        'E'=>'Kode',
-        'F'=>'Jenis Belanja',
-        'G'=>'Uraian',
-        'H'=>'Volume',
-        'I'=>'Satuan',
-        'J'=>'Harga',
-        'K'=>'Total',
-        'L'=>'Jan','M'=>'Feb','N'=>'Mar','O'=>'Apr','P'=>'Mei','Q'=>'Jun',
-        'R'=>'Jul','S'=>'Agu','T'=>'Sep','U'=>'Okt','V'=>'Nov','W'=>'Des'
-    ];
+    'A'=>'Jurusan',
+    'B'=>'SNP',
+    'C'=>'Komponen',
+    'D'=>'Kegiatan',
+    'E'=>'Kode',
+    'F'=>'Nama Kodering',
+    'G'=>'Jenis Belanja',
+    'H'=>'Uraian',
+    'I'=>'Volume',
+    'J'=>'Satuan',
+    'K'=>'Harga',
+    'L'=>'Total',
+    'M'=>'Jan','N'=>'Feb','O'=>'Mar','P'=>'Apr','Q'=>'Mei','R'=>'Jun',
+    'S'=>'Jul','T'=>'Agu','U'=>'Sep','V'=>'Okt','W'=>'Nov','X'=>'Des'
+];
+
 
     foreach ($headers as $col => $text) {
         $sheet->setCellValue($col.'1', $text);
@@ -140,6 +142,7 @@ class Laporan_rkas extends CI_Controller {
         ref_snp.komponen,
         ref_snp.uraian_kegiatan AS kegiatan_nama,
         kodering.kode AS kode_rka,
+        kodering.nama AS nama_kodering,
         kategori_kodering.nama AS jenis_belanja
     ");
     $this->db->from("item_anggaran");
@@ -158,23 +161,29 @@ class Laporan_rkas extends CI_Controller {
     $r = 2;
     foreach ($rows as $d) {
         $sheet->setCellValue("A$r", $d->jurusan_nama);
-        $sheet->setCellValue("B$r", $d->snp);
-        $sheet->setCellValue("C$r", $d->komponen);
-        $sheet->setCellValue("D$r", $d->kegiatan_nama);
-        $sheet->setCellValue("E$r", $d->kode_rka);
-        $sheet->setCellValue("F$r", $d->jenis_belanja);
-        $sheet->setCellValue("G$r", $d->uraian);
-        $sheet->setCellValue("H$r", $d->volume);
-        $sheet->setCellValue("I$r", $d->satuan);
-        $sheet->setCellValue("J$r", $d->harga_satuan);
-        $sheet->setCellValue("K$r", $d->volume * $d->harga_satuan);
+$sheet->setCellValue("B$r", $d->snp);
+$sheet->setCellValue("C$r", $d->komponen);
+$sheet->setCellValue("D$r", $d->kegiatan_nama);
+$sheet->setCellValue("E$r", $d->kode_rka);
+$sheet->setCellValue("F$r", $d->nama_kodering);
+$sheet->setCellValue("G$r", $d->jenis_belanja);
+$sheet->setCellValue("H$r", $d->uraian);
+$sheet->setCellValue("I$r", $d->volume);
+$sheet->setCellValue("J$r", $d->satuan);
+$sheet->setCellValue("K$r", $d->harga_satuan);
+$sheet->setCellValue("L$r", $d->volume * $d->harga_satuan);
 
-        $months = ['jan','feb','mar','apr','mei','jun','jul','agu','sep','okt','nov','des'];
-        $col = 'L';
-        foreach ($months as $m) {
-            $sheet->setCellValue($col.$r, $d->$m);
-            $col++;
-        }
+
+       $months = ['jan','feb','mar','apr','mei','jun','jul','agu','sep','okt','nov','des'];
+$col = 'M';
+
+foreach ($months as $m) {
+    $value = ($d->$m == 0) ? '' : $d->$m; // ⬅️ ini kuncinya
+    $sheet->setCellValue($col.$r, $value);
+    $col++;
+}
+
+
         $r++;
     }
 
