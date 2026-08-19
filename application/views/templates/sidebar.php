@@ -137,6 +137,13 @@ body {
     </a>
 </li>
 
+<!-- UPLOAD BERKAS -->
+<li class="nav-item">
+    <a class="nav-link" href="<?= site_url('upload') ?>">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <span>Upload Berkas</span>
+    </a>
+</li>
 <hr class="sidebar-divider">
 
 <!-- MASTER DATA -->
